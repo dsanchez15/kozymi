@@ -1,0 +1,77 @@
+name: Release
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure Git
+        run: |
+          git config --global url."https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/".insteadOf "https://github.com/"
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: '1.21'
+          cache: true
+
+      - name: Get tag
+        id: tag
+        run: echo "TAG=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+
+      - name: Build binaries
+        env:
+          GOPROXY: https://proxy.golang.org,direct
+          GOSUMDB: off
+        run: |
+          mkdir -p dist
+
+          go mod download
+
+          # Windows
+          GOOS=windows GOARCH=amd64 go build -ldflags="-s -w" -o dist/komyzi-windows-amd64.exe ./cmd/cli
+          GOOS=windows GOARCH=arm64 go build -ldflags="-s -w" -o dist/komyzi-windows-arm64.exe ./cmd/cli
+
+          # macOS
+          GOOS=darwin GOARCH=amd64 go build -ldflags="-s -w" -o dist/komyzi-darwin-amd64 ./cmd/cli
+          GOOS=darwin GOARCH=arm64 go build -ldflags="-s -w" -o dist/komyzi-darwin-arm64 ./cmd/cli
+
+          # Linux
+          GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o dist/komyzi-linux-amd64 ./cmd/cli
+          GOOS=linux GOARCH=arm64 go build -ldflags="-s -w" -o dist/komyzi-linux-arm64 ./cmd/cli
+
+      - name: Create archives
+        run: |
+          cd dist
+
+          # Windows ZIP
+          powershell -Command "Compress-Archive -Path 'komyzi-windows-amd64.exe' -DestinationPath 'komyzi-windows-amd64.zip'"
+          powershell -Command "Compress-Archive -Path 'komyzi-windows-arm64.exe' -DestinationPath 'komyzi-windows-arm64.zip'"
+
+          # macOS & Linux - tar.gz
+          tar -czf komyzi-darwin-amd64.tar.gz komyzi-darwin-amd64
+          tar -czf komyzi-darwin-arm64.tar.gz komyzi-darwin-arm64
+          tar -czf komyzi-linux-amd64.tar.gz komyzi-linux-amd64
+          tar -czf komyzi-linux-arm64.tar.gz komyzi-linux-arm64
+
+          ls -la
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

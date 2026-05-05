@@ -1,0 +1,38 @@
+# Binaries
+komyzi
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binary, built with `go test -c`
+*.test
+
+# Output of the go coverage tool, particularly when used like
+# go test -coverprofile=coverage.out
+*.out
+
+# Dependency directories (remove the comment below to include it)
+# vendor/
+
+# IDE
+.idea/
+.vscode/
+.opencode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Build outputs
+dist/
+build/
+
+# Logs
+*.log
+
+# Local config
+.komyzi.yaml

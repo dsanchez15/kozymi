@@ -11,7 +11,7 @@ import (
 	"github.com/komyzi/komyzi/pkg/models"
 )
 
-var version = "0.1.0"
+var version = "0.2.0"
 
 func main() {
 	if len(os.Args) < 2 {

@@ -261,7 +261,7 @@ func copyFilePath(srcPath, dstPath string) error {
 	if err != nil {
 		return err
 	}
-	defer src.Close()
+	defer func() { _ = src.Close() }()
 
 	return copyFile(src, dstPath)
 }

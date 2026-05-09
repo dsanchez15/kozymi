@@ -36,3 +36,6 @@ build/
 
 # Local config
 .komyzi.yaml
+
+# Personal rules (user-specific, not shared)
+AGENTS.md

@@ -33,9 +33,24 @@ go build -o komyzi.exe ./cmd/cli
 ```bash
 # Show version
 komyzi.exe --version
+komyzi.exe version
+
+# Save configuration
+komyzi.exe save                           # Save current project config (uses folder name)
+komyzi.exe save -n <name>                 # Save with custom name
+komyzi.exe save --global                  # Save global config
+komyzi.exe save -n <name> --global        # Save global config with custom name
+komyzi.exe save --from ./path             # Save config from specific path
+komyzi.exe save -n <name> --from ./path   # Save from path with custom name
+komyzi.exe save --agent opencode          # Force specific agent
+
+# Apply configuration
+komyzi.exe apply <name>                   # Apply config to current directory
+komyzi.exe apply <name> --to ./path       # Apply config to specific path
+komyzi.exe apply <name> --agent opencode  # Apply config from specific agent
 ```
 
-> Additional commands (`save`, `list`, `apply`, `detect`, etc.) are planned but not yet implemented.
+> Additional commands (`list`, `detect`, etc.) are planned but not yet implemented.
 
 ## Supported Agents
 

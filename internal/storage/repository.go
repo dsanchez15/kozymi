@@ -162,6 +162,110 @@ func copyFile(src io.Reader, dstPath string) error {
 	return err
 }
 
+// ApplyConfig aplica una configuración guardada a un directorio de proyecto
+func (r *Repository) ApplyConfig(agentType models.AgentType, configName string, targetPath string) error {
+	// Verificar que existe la configuración guardada
+	configDir := filepath.Join(r.baseDir, "agents", string(agentType), "configs", configName)
+	if !dirExists(configDir) {
+		return fmt.Errorf("configuration '%s' not found for agent '%s'", configName, agentType)
+	}
+
+	// Leer metadata
+	metadataPath := filepath.Join(configDir, "agent.json")
+	metadataData, err := os.ReadFile(metadataPath)
+	if err != nil {
+		return fmt.Errorf("error reading metadata: %w", err)
+	}
+
+	var config models.AgentConfig
+	if err := json.Unmarshal(metadataData, &config); err != nil {
+		return fmt.Errorf("error parsing metadata: %w", err)
+	}
+
+	// Crear directorio .opencode/ en destino si no existe
+	opencodeDir := filepath.Join(targetPath, ".opencode")
+	if err := os.MkdirAll(opencodeDir, 0755); err != nil {
+		return fmt.Errorf("error creating .opencode directory: %w", err)
+	}
+
+	// Aplicar archivos no-portables
+	// 1. Config principal (config.json → opencode.json)
+	savedConfigPath := filepath.Join(configDir, "config.json")
+	if fileExists(savedConfigPath) {
+		targetConfigPath := filepath.Join(targetPath, "opencode.json")
+		if err := copyFilePath(savedConfigPath, targetConfigPath); err != nil {
+			return fmt.Errorf("error applying config: %w", err)
+		}
+		fmt.Printf("✓ Applied opencode.json\n")
+	}
+
+	// 2. Reglas (rules.md → AGENTS.md)
+	savedRulesPath := filepath.Join(configDir, "rules.md")
+	if fileExists(savedRulesPath) {
+		targetRulesPath := filepath.Join(targetPath, "AGENTS.md")
+		if err := copyFilePath(savedRulesPath, targetRulesPath); err != nil {
+			return fmt.Errorf("error applying rules: %w", err)
+		}
+		fmt.Printf("✓ Applied AGENTS.md\n")
+	}
+
+	// 3. TUI config (tui.json)
+	savedTUIPath := filepath.Join(configDir, "tui.json")
+	if fileExists(savedTUIPath) {
+		targetTUIPath := filepath.Join(targetPath, "tui.json")
+		if err := copyFilePath(savedTUIPath, targetTUIPath); err != nil {
+			return fmt.Errorf("error applying tui config: %w", err)
+		}
+		fmt.Printf("✓ Applied tui.json\n")
+	}
+
+	// 4. Aplicar elementos portables desde shared/
+	sharedDir := filepath.Join(r.baseDir, "agents", string(agentType), "shared")
+	if dirExists(sharedDir) {
+		if err := r.applyPortables(sharedDir, opencodeDir, config.SharedRefs); err != nil {
+			return fmt.Errorf("error applying portables: %w", err)
+		}
+	}
+
+	fmt.Printf("✓ Configuration '%s' applied successfully to %s\n", configName, targetPath)
+	return nil
+}
+
+// applyPortables aplica los elementos portables a un proyecto
+func (r *Repository) applyPortables(sharedDir, targetOpenCodeDir string, sharedRefs []string) error {
+	for _, ref := range sharedRefs {
+		// ref es algo como "skills/" o "agents/"
+		ref = filepath.Clean(ref)
+		srcDir := filepath.Join(sharedDir, ref)
+		
+		if !dirExists(srcDir) {
+			continue
+		}
+
+		dstDir := filepath.Join(targetOpenCodeDir, ref)
+		
+		// Copiar todo el contenido
+		if err := copyDir(srcDir, dstDir); err != nil {
+			return fmt.Errorf("error applying %s: %w", ref, err)
+		}
+
+		fmt.Printf("✓ Applied %s\n", ref)
+	}
+
+	return nil
+}
+
+// copyFilePath copia un archivo de origen a destino
+func copyFilePath(srcPath, dstPath string) error {
+	src, err := os.Open(srcPath)
+	if err != nil {
+		return err
+	}
+	defer src.Close()
+
+	return copyFile(src, dstPath)
+}
+
 // copyDir copia un directorio recursivamente
 func copyDir(src, dst string) error {
 	return filepath.Walk(src, func(path string, info os.FileInfo, err error) error {

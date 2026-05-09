@@ -30,6 +30,8 @@ func main() {
 	switch command {
 	case "save":
 		handleSave(os.Args[2:])
+	case "apply":
+		handleApply(os.Args[2:])
 	case "version":
 		fmt.Println("komyzi version", version)
 	default:
@@ -50,6 +52,9 @@ func printUsage() {
 	fmt.Println("  komyzi save --from <path>             Save config from specific path")
 	fmt.Println("  komyzi save -n <name> --from <path>   Save from path with custom name")
 	fmt.Println("  komyzi save --agent <type>            Force specific agent type")
+	fmt.Println("  komyzi apply <name>                   Apply config to current directory")
+	fmt.Println("  komyzi apply <name> --to <path>       Apply config to specific path")
+	fmt.Println("  komyzi apply <name> --agent <type>    Apply config from specific agent")
 	fmt.Println("  komyzi version                        Show version")
 	fmt.Println("  komyzi --version                      Show version")
 }
@@ -163,6 +168,62 @@ func handleSave(args []string) {
 	}
 
 	fmt.Printf("✓ Configuration '%s' saved successfully from %s\n", configName, sourceType)
+}
+
+func handleApply(args []string) {
+	if len(args) < 1 {
+		fmt.Println("Error: config name required")
+		fmt.Println("Usage: komyzi apply <name> [--to <path>] [--agent <type>]")
+		os.Exit(1)
+	}
+
+	configName := args[0]
+
+	// Parse flags
+	fs := flag.NewFlagSet("apply", flag.ExitOnError)
+	toFlag := fs.String("to", "", "Target project directory (defaults to current directory)")
+	agentFlag := fs.String("agent", "opencode", "Agent type (default: opencode)")
+	
+	fs.Parse(args[1:])
+
+	// For now, only support opencode
+	if *agentFlag != "opencode" {
+		fmt.Printf("Error: unsupported agent type: %s\n", *agentFlag)
+		fmt.Println("Currently supported: opencode")
+		os.Exit(1)
+	}
+
+	// Determine target path
+	targetPath := *toFlag
+	if targetPath == "" {
+		currentDir, err := os.Getwd()
+		if err != nil {
+			fmt.Printf("Error getting current directory: %v\n", err)
+			os.Exit(1)
+		}
+		targetPath = currentDir
+	} else {
+		absPath, err := filepath.Abs(targetPath)
+		if err != nil {
+			fmt.Printf("Error resolving path: %v\n", err)
+			os.Exit(1)
+		}
+		targetPath = absPath
+	}
+
+	fmt.Printf("Applying configuration '%s' to %s...\n", configName, targetPath)
+
+	// Apply configuration
+	repo, err := storage.NewRepository()
+	if err != nil {
+		fmt.Printf("Error initializing storage: %v\n", err)
+		os.Exit(1)
+	}
+
+	if err := repo.ApplyConfig(models.AgentOpenCode, configName, targetPath); err != nil {
+		fmt.Printf("Error applying configuration: %v\n", err)
+		os.Exit(1)
+	}
 }
 
 // getGlobalConfigDirHint retorna la ruta esperada para la config global

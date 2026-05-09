@@ -55,7 +55,7 @@ func (r *Repository) SaveConfig(agentPaths *models.AgentPaths, name string) erro
 	if agentPaths.ConfigPath != "" {
 		src, err := os.Open(agentPaths.ConfigPath)
 		if err == nil {
-			defer src.Close()
+			defer func() { _ = src.Close() }()
 			dst := filepath.Join(configsDir, "config.json")
 			if err := copyFile(src, dst); err != nil {
 				return fmt.Errorf("error copying config: %w", err)
@@ -67,7 +67,7 @@ func (r *Repository) SaveConfig(agentPaths *models.AgentPaths, name string) erro
 	if agentPaths.RulesPath != "" && fileExists(agentPaths.RulesPath) {
 		src, err := os.Open(agentPaths.RulesPath)
 		if err == nil {
-			defer src.Close()
+			defer func() { _ = src.Close() }()
 			dst := filepath.Join(configsDir, "rules.md")
 			if err := copyFile(src, dst); err != nil {
 				return fmt.Errorf("error copying rules: %w", err)
@@ -79,7 +79,7 @@ func (r *Repository) SaveConfig(agentPaths *models.AgentPaths, name string) erro
 	if agentPaths.TUIPath != "" {
 		src, err := os.Open(agentPaths.TUIPath)
 		if err == nil {
-			defer src.Close()
+			defer func() { _ = src.Close() }()
 			dst := filepath.Join(configsDir, "tui.json")
 			if err := copyFile(src, dst); err != nil {
 				return fmt.Errorf("error copying tui config: %w", err)
@@ -156,7 +156,7 @@ func copyFile(src io.Reader, dstPath string) error {
 	if err != nil {
 		return err
 	}
-	defer dst.Close()
+	defer func() { _ = dst.Close() }()
 
 	_, err = io.Copy(dst, src)
 	return err
@@ -294,7 +294,7 @@ func copyDir(src, dst string) error {
 		if err != nil {
 			return err
 		}
-		defer srcFile.Close()
+		defer func() { _ = srcFile.Close() }()
 
 		return copyFile(srcFile, dstPath)
 	})

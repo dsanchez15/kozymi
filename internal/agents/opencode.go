@@ -25,10 +25,7 @@ func (d *OpenCodeDetector) IsInstalled() bool {
 	}
 	// Verificar si existe el binario (en PATH)
 	_, err := os.Stat(filepath.Join(os.Getenv("LOCALAPPDATA"), "opencode", "opencode.exe"))
-	if err == nil {
-		return true
-	}
-	return false
+	return err == nil
 }
 
 // DetectProject busca configuración de OpenCode en un directorio

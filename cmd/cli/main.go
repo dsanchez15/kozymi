@@ -67,7 +67,10 @@ func handleSave(args []string) {
 	fromFlag := fs.String("from", "", "Path to project directory")
 	agentFlag := fs.String("agent", "", "Force specific agent type (opencode)")
 	
-	fs.Parse(args)
+	if err := fs.Parse(args); err != nil {
+		fmt.Printf("Error parsing flags: %v\n", err)
+		os.Exit(1)
+	}
 
 	configName := *nameFlag
 
@@ -184,7 +187,10 @@ func handleApply(args []string) {
 	toFlag := fs.String("to", "", "Target project directory (defaults to current directory)")
 	agentFlag := fs.String("agent", "opencode", "Agent type (default: opencode)")
 	
-	fs.Parse(args[1:])
+	if err := fs.Parse(args[1:]); err != nil {
+		fmt.Printf("Error parsing flags: %v\n", err)
+		os.Exit(1)
+	}
 
 	// For now, only support opencode
 	if *agentFlag != "opencode" {
